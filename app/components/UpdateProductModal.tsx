@@ -28,7 +28,7 @@ export function UpdateProductModal({
   onSubmit,
 }: UpdateProductModalProps) {
   const [price, setPrice] = useState(product?.price || "");
-  const [quantity, setQuantity] = useState(product?.stock.toString() || "");
+  const [quantity, setQuantity] = useState(product?.stock.toString() || "N/A");
   const [imageUrl, setImageUrl] = useState(product?.product_image || "");
   const [loading, setLoading] = useState(false);
 
@@ -76,7 +76,6 @@ export function UpdateProductModal({
     >
       <View className="flex-1 bg-black/50 justify-end">
         <View className="bg-white rounded-t-3xl max-h-[90%]">
-          {/* Header */}
           <View className="flex-row items-center justify-between p-5 border-b border-gray-200">
             <Text className="text-xl font-bold text-gray-900">
               Update Product
@@ -86,7 +85,6 @@ export function UpdateProductModal({
             </TouchableOpacity>
           </View>
 
-          {/* Content */}
           <ScrollView className="p-5">
             <View className="mb-4">
               <Text className="text-sm font-semibold text-gray-700 mb-2">
@@ -122,16 +120,15 @@ export function UpdateProductModal({
             </View>
 
             <View className="mb-4">
-              <Text className="text-sm font-semibold text-gray-700 mb-2 flex-row items-center">
-                <Ionicons name="add-circle" size={16} color="green" />{" "}
-                <Text className="text-green-600">Add Stock Quantity</Text>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">
+                Quantity
               </Text>
               <TextInput
-                value={""}
+                value={quantity}
                 onChangeText={setQuantity}
                 keyboardType="number-pad"
                 className="border border-gray-300 rounded-xl p-4 text-base bg-white"
-                placeholder={`Enter quantity to add (current:${quantity})`}
+                placeholder="Enter quantity"
               />
             </View>
 
@@ -150,7 +147,6 @@ export function UpdateProductModal({
             </View>
           </ScrollView>
 
-          {/* Footer */}
           <View className="p-5 border-t border-gray-200">
             <TouchableOpacity
               onPress={handleSubmit}

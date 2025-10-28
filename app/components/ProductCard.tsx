@@ -1,4 +1,3 @@
-// components/ProductCard.tsx
 import { ProductDataType } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
@@ -18,19 +17,6 @@ interface ProductCardProps {
   onAddToCart: (product: ProductDataType) => void;
 }
 
-const fallbackImages = [
-  require("@/assets/images/not-found-1.jpeg"),
-  require("@/assets/images/not-found-2.jpeg"),
-  require("@/assets/images/not-found-3.jpeg"),
-];
-
-const getRandomFallbackImage = (barcode: string) => {
-  const index =
-    barcode.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) %
-    fallbackImages.length;
-  return fallbackImages[index];
-};
-
 export function ProductCard({
   product,
   onDelete,
@@ -38,10 +24,6 @@ export function ProductCard({
   onAddToCart,
 }: ProductCardProps) {
   const [menuVisible, setMenuVisible] = useState(false);
-
-  const imageSource = product.product_image
-    ? { uri: product.product_image }
-    : getRandomFallbackImage(product.barcode);
 
   const handleDelete = () => {
     setMenuVisible(false);
@@ -64,16 +46,32 @@ export function ProductCard({
     onUpdate(product);
   };
 
+  const isOutOfStock = product.stock === 0;
+
   return (
     <View className="bg-white mx-4 mb-3 rounded-xl shadow-sm border border-gray-100">
       <View className="flex-row p-4">
         {/* Product Image */}
         <View className="w-16 h-16 bg-gray-50 rounded-lg overflow-hidden">
-          <Image
-            source={imageSource}
-            className="w-full h-full"
-            resizeMode="cover"
-          />
+          {product.product_image ? (
+            <Image
+              // source={{ uri: product.product_image }}
+              source={require("@/assets/images/not-found-1.jpeg")}
+              className="w-full h-full"
+              resizeMode="cover"
+            />
+          ) : (
+            <Image
+              source={require("@/assets/images/not-found-1.jpeg")}
+              className="w-full h-full"
+              resizeMode="cover"
+            />
+          )}
+          {isOutOfStock && (
+            <View className="absolute inset-0 bg-black/40 items-center justify-center">
+              <Text className="text-white text-xs font-bold">OUT</Text>
+            </View>
+          )}
         </View>
 
         {/* Product Details */}
@@ -141,14 +139,12 @@ export function ProductCard({
           <View className="flex-1 justify-center items-center px-6">
             <TouchableOpacity activeOpacity={1}>
               <View className="bg-white rounded-3xl w-72 overflow-hidden shadow-2xl">
-                {/* Header */}
                 <View className="px-5 py-4 border-b border-gray-100">
                   <Text className="text-lg font-semibold text-gray-800">
                     Product Options
                   </Text>
                 </View>
 
-                {/* Menu Items */}
                 <View className="py-2">
                   <TouchableOpacity
                     onPress={handleEdit}
@@ -205,7 +201,6 @@ export function ProductCard({
                   </TouchableOpacity>
                 </View>
 
-                {/* Cancel Button */}
                 <TouchableOpacity
                   onPress={() => setMenuVisible(false)}
                   className="px-5 py-4 border-t border-gray-100 active:bg-gray-50"

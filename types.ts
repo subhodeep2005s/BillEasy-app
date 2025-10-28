@@ -134,3 +134,17 @@ export interface SalesData {
     sales: number;
   }[];
 }
+
+// AddProductdataType
+
+export interface AddProductData {
+  barcode: string;
+  name: string;
+  price: number;
+  quantity: number;
+  category: string;
+  brand: string;
+  discount: number;
+  unit: string;
+  isQuantizedItem: boolean;
+}

@@ -79,7 +79,6 @@ export default function Analytics() {
       });
 
       const data = await response.json();
-      console.log("Sales Report:", JSON.stringify(data.data.salesData));
 
       if (response.ok && data?.data?.salesData) {
         const salesData: SalesData = data.data.salesData;

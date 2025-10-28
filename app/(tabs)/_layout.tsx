@@ -60,12 +60,44 @@ export default function TabLayout() {
     return null;
   }
 
+  // const CustomTabButton = ({ children, onPress }: any) => (
+  //   <TouchableOpacity
+  //     className="absolute -top-5 justify-center items-center"
+  //     activeOpacity={0.8}
+  //     onPress={onPress}
+  //     style={{
+  //       shadowColor: "#3b82f6",
+  //       shadowOffset: { width: 0, height: 4 },
+  //       shadowOpacity: 0.3,
+  //       shadowRadius: 8,
+  //       elevation: 8,
+  //     }}
+  //   >
+  //     <LinearGradient
+  //       colors={["#3b82f6", "#2563eb"]}
+  //       start={{ x: 0, y: 0 }}
+  //       end={{ x: 1, y: 1 }}
+  //       style={{
+  //         width: 64,
+  //         height: 64,
+  //         borderRadius: 32,
+  //         justifyContent: "center",
+  //         alignItems: "center",
+  //       }}
+  //     >
+  //       {children}
+  //     </LinearGradient>
+  //   </TouchableOpacity>
+  // );
   const CustomTabButton = ({ children, onPress }: any) => (
     <TouchableOpacity
-      className="absolute -top-5 justify-center items-center"
-      activeOpacity={0.8}
       onPress={onPress}
+      activeOpacity={0.8}
       style={{
+        position: "absolute",
+        top: -30,
+        left: "50%",
+        transform: [{ translateX: -32 }],
         shadowColor: "#3b82f6",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
