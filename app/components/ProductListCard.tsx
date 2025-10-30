@@ -72,7 +72,7 @@ export function ProductListCard({
         <View className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden">
           <Image
             // source={imageSource}
-            source={require("@/assets/images/not-found-2.jpeg")}
+            source={require("@/assets/images/not-found-1.jpeg")}
             className="w-full h-full"
             resizeMode="cover"
           />

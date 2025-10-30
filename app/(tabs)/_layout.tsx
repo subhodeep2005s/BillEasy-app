@@ -1,10 +1,15 @@
+import { apiUrl } from "@/config";
 import "@/global.css";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BlurView } from "expo-blur";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { LinearGradient } from "expo-linear-gradient";
 import { Tabs } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
+
 import {
   Animated,
   Platform,
@@ -19,10 +24,66 @@ export default function TabLayout() {
   const [isScanningCheckout, setIsScanningCheckout] = useState(false);
   const [flashEnabled, setFlashEnabled] = useState(false);
   const [scanAnimation] = useState(new Animated.Value(0));
+  const handleCheckoutBarcodeScanned = async ({ data }: { data: string }) => {
+    try {
+      setIsScanningCheckout(false);
 
-  const handleCheckoutBarcodeScanned = ({ data }: { data: string }) => {
-    alert(`added to cart : ${data}`);
-    setIsScanningCheckout(false);
+      // ✅ Get user token securely
+      const token = await SecureStore.getItemAsync("accessToken");
+      if (!token) {
+        alert("Please log in first");
+        return;
+      }
+
+      // ✅ Fetch product data by barcode (with Authorization header)
+      const response = await fetch(
+        `${apiUrl}/product/show-product/?searchKey=${data}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (result?.data?.products?.length > 0) {
+        const product = result.data.products[0];
+
+        if (product.stock > 0) {
+          // ✅ Retrieve existing cart
+          const existingCart = await AsyncStorage.getItem("cart");
+          let cart = existingCart ? JSON.parse(existingCart) : [];
+
+          // ✅ Add new product (duplicates allowed)
+          cart.push({
+            barcode: product.barcode,
+            name: product.name,
+            price: product.price,
+            product_image: product.product_image,
+            stock: product.stock,
+            description: product.description,
+          });
+
+          // ✅ Save cart
+          await AsyncStorage.setItem("cart", JSON.stringify(cart));
+
+          alert(`${product.name} added to cart`);
+
+          // ✅ Log updated cart for debugging
+          console.log("🛒 Current Cart:", cart);
+        } else {
+          alert(`${product.name} is out of stock`);
+        }
+      } else {
+        alert("Product not found");
+      }
+    } catch (error) {
+      console.error("❌ Error fetching product:", error);
+      alert("Failed to fetch product. Please try again.");
+    }
   };
 
   const openScanner = () => {
@@ -60,35 +121,6 @@ export default function TabLayout() {
     return null;
   }
 
-  // const CustomTabButton = ({ children, onPress }: any) => (
-  //   <TouchableOpacity
-  //     className="absolute -top-5 justify-center items-center"
-  //     activeOpacity={0.8}
-  //     onPress={onPress}
-  //     style={{
-  //       shadowColor: "#3b82f6",
-  //       shadowOffset: { width: 0, height: 4 },
-  //       shadowOpacity: 0.3,
-  //       shadowRadius: 8,
-  //       elevation: 8,
-  //     }}
-  //   >
-  //     <LinearGradient
-  //       colors={["#3b82f6", "#2563eb"]}
-  //       start={{ x: 0, y: 0 }}
-  //       end={{ x: 1, y: 1 }}
-  //       style={{
-  //         width: 64,
-  //         height: 64,
-  //         borderRadius: 32,
-  //         justifyContent: "center",
-  //         alignItems: "center",
-  //       }}
-  //     >
-  //       {children}
-  //     </LinearGradient>
-  //   </TouchableOpacity>
-  // );
   const CustomTabButton = ({ children, onPress }: any) => (
     <TouchableOpacity
       onPress={onPress}
@@ -124,6 +156,7 @@ export default function TabLayout() {
 
   return (
     <>
+      <StatusBar style="dark" />
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -176,9 +209,9 @@ export default function TabLayout() {
         />
 
         <Tabs.Screen
-          name="inventory"
+          name="dashboard"
           options={{
-            title: "Inventory",
+            title: "Dashboard",
             tabBarIcon: ({ color, focused }) => (
               <View className="relative items-center justify-center">
                 {focused && (
@@ -207,9 +240,9 @@ export default function TabLayout() {
         />
 
         <Tabs.Screen
-          name="analytics"
+          name="sales"
           options={{
-            title: "Analytics",
+            title: "Sales",
             tabBarIcon: ({ color, focused }) => (
               <View className="relative items-center justify-center">
                 {focused && (

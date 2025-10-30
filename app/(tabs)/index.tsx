@@ -2,13 +2,19 @@
 import { apiUrl } from "@/config";
 import "@/global.css";
 import { ProductDataType, UpdateStockType } from "@/types";
+import { useRouter } from "expo-router";
 import * as secureStore from "expo-secure-store";
 import React, { useCallback, useEffect, useState } from "react";
 import { Alert, RefreshControl, ScrollView, View } from "react-native";
 import { useDebounce } from "../components//hooks/useDebounce";
 import { AddProductData, AddProductModal } from "../components/AddProductModal";
+import { BarcodeScannerOverlay } from "../components/BarcodeScannerOverlay";
 import { Header } from "../components/Header";
 import { ProductList } from "../components/ProductList";
+import {
+  ScanProductData,
+  ScanProductModal,
+} from "../components/ScanProductModal";
 import { SearchBar } from "../components/SearchBar";
 import { UpdateProductModal } from "../components/UpdateProductModal";
 
@@ -22,13 +28,31 @@ export default function Index() {
   const [selectedProduct, setSelectedProduct] =
     useState<ProductDataType | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  // scan states const [scanModalVisible, setScanModalVisible] = useState(false);
+  // scan states
+  const [scanModalVisible, setScanModalVisible] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState("");
   const [addProductModalVisible, setAddProductModalVisible] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [cartItemCount] = useState(0);
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  // cartRouter
+  const router = useRouter();
+
+  // for scanning   to add product
+  const [isScanningCheckout, setIsScanningCheckout] = useState(false);
+  const [flashEnabled, setFlashEnabled] = useState(false);
+
+  const openScanner = () => setIsScanningCheckout(true);
+  const closeScanner = () => setIsScanningCheckout(false);
+  const toggleFlash = () => setFlashEnabled((prev) => !prev);
+
+  const handleCheckoutBarcodeScanned = (barcode: string) => {
+    closeScanner();
+    setScannedBarcode(barcode);
+    setScanModalVisible(true);
+  };
 
   useEffect(() => {
     setProducts([]);
@@ -127,11 +151,11 @@ export default function Index() {
   };
 
   const handleAddToCart = (product: ProductDataType) => {
-    Alert.alert(
-      "Added to Cart",
-      `${product.name} has been added to your cart`,
-      [{ text: "OK" }]
-    );
+    // Alert.alert(
+    //   "Added to Cart",
+    //   `${product.name} has been added to your cart`,
+    //   [{ text: "OK" }]
+    // );
   };
 
   const handleSubmitUpdate = async (
@@ -191,7 +215,7 @@ export default function Index() {
   );
 
   const handleCartPress = () => {
-    Alert.alert("Cart", "Cart functionality coming soon!");
+    router.push("/cart");
   };
 
   const handleAddPress = () => {
@@ -225,7 +249,31 @@ export default function Index() {
   };
 
   const handleScanPress = () => {
-    Alert.alert("Scan Product", "Barcode scanner functionality coming soon!");
+    openScanner();
+  };
+
+  // Add submit handler
+  const handleScanProduct = async (data: ScanProductData) => {
+    try {
+      const token = await secureStore.getItemAsync("accessToken");
+      const response = await fetch(`${apiUrl}/product/add-product`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add product");
+      }
+
+      onRefresh();
+    } catch (error) {
+      console.error("Error adding product:", error);
+      throw error;
+    }
   };
 
   const toggleViewMode = () => {
@@ -287,6 +335,20 @@ export default function Index() {
         visible={addProductModalVisible}
         onClose={() => setAddProductModalVisible(false)}
         onSubmit={handleAddProduct}
+      />
+      <ScanProductModal
+        visible={scanModalVisible}
+        scannedBarcode={scannedBarcode}
+        onClose={() => setScanModalVisible(false)}
+        onSubmit={handleScanProduct}
+      />
+
+      <BarcodeScannerOverlay
+        visible={isScanningCheckout}
+        flashEnabled={flashEnabled}
+        onToggleFlash={toggleFlash}
+        onClose={closeScanner}
+        onBarcodeScanned={handleCheckoutBarcodeScanned}
       />
     </View>
   );

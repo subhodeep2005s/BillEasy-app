@@ -74,7 +74,7 @@ export function ProductGridCard({
         <View className="w-full h-32 bg-gray-50">
           <Image
             // source={imageSource}
-            source={require("@/assets/images/not-found-2.jpeg")}
+            source={require("@/assets/images/not-found-1.jpeg")}
             className="w-full h-full"
             resizeMode="cover"
           />
