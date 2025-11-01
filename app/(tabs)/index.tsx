@@ -20,6 +20,7 @@ import { UpdateProductModal } from "../components/UpdateProductModal";
 
 export default function Index() {
   const [products, setProducts] = useState<ProductDataType[]>([]);
+
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [pageNo, setPageNo] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
