@@ -1,0 +1,148 @@
+### ENV
+@apiBase = http://localhost:8080
+@authBase = {{apiBase}}/auth
+@productsBase = {{apiBase}}/product
+@accessToken =
+@refreshToken =
+@auth = Bearer {{accessToken}}
+
+### AUTH: REGISTER
+# @name register
+POST {{authBase}}/register
+Content-Type: application/json
+
+{
+  "username": "demo_user",
+  "password": "StrongPass!234",
+  "email": "demo@example.com",
+  "phoneNo": "900",
+  "additional_dtls": "Retail A",
+  "profile_image": "https://example.com/p.png",
+  "upiId": "merchant@oksbi"
+}
+
+### AUTH: LOGIN
+# @name login
+POST {{authBase}}/login
+Content-Type: application/json
+
+{
+  "username": "RAHUL",
+  "password": "RAHUL"
+}
+
+@accessToken = {{login.response.body.accessToken}}
+@refreshToken = {{login.response.body.refreshToken}}
+@auth = Bearer {{accessToken}}
+
+### AUTH: IS LOGGED
+GET {{authBase}}/is-logged
+Authorization: {{auth}}
+
+### AUTH: LOGOUT
+POST {{authBase}}/logout
+Content-Type: application/json
+
+{ "refreshToken": "{{refreshToken}}" }
+
+### PRODUCTS: ADD (quantized)
+# @name addProductQuant
+POST {{productsBase}}/add-product
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "barcode": "1234567890123",
+  "name": "Dairy Milk 100g",
+  "price": 75,
+  "quantity": 50,
+  "productImage": "https://example.com/img/dm.png",
+  "category": "Chocolate",
+  "brand": "Cadbury",
+  "discount": 10,
+  "unit": "pcs",
+  "desc": "Cadbury Dairy Milk 100g",
+  "mfgDate": "2025-10-01",
+  "expDate": "2026-10-01",
+  "isQuantizedItem": true
+}
+
+### PRODUCTS: ADD (non-quantized)
+# @name addProductWeighted
+POST {{productsBase}}/add-product
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "name": "Loose Rice",
+  "price": 60,
+  "quantity": 100,
+  "productImage": "https://example.com/img/rice.png",
+  "category": "Grocery",
+  "brand": "Local",
+  "discount": 0,
+  "unit": "kg",
+  "desc": "Loose rice per kg",
+  "isQuantizedItem": false
+}
+
+### PRODUCTS: SHOW (all)
+GET {{productsBase}}/show-product?searchKey=*&rowsPerPage=10&pageNo=1
+Authorization: {{auth}}
+
+### PRODUCTS: STOCK ALERT
+GET {{productsBase}}/stock-alert
+Authorization: {{auth}}
+
+### CART: PROCEED
+# @name proceedCart
+POST {{productsBase}}/proceed-cart
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "barcodes": [
+    "{{addProductQuant.response.body.product.barcode}}",
+    "{{addProductWeighted.response.body.product.barcode}}|0.75"
+  ]
+}
+
+### CART: FINALIZE
+POST {{productsBase}}/finalize-sale
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "customerName": "Rohit Sharma",
+  "customerPhone": "9999999999",
+  "paymentMode": "UPI",
+  "cartId": "{{proceedCart.response.body.cartId}}"
+}
+
+### REPORT: SALES
+POST {{productsBase}}/sales-report
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "days": 30 }
+
+### PRODUCTS: DELETE
+POST {{productsBase}}/delete-product
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "barcode": "{{addProductQuant.response.body.product.barcode}}"
+}
+
+### CART: PROCEED (manual)
+POST {{productsBase}}/proceed-cart
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "barcodes": [
+    "1234567890123",
+    "N/A-1730200000000|1.25"
+  ]
+}

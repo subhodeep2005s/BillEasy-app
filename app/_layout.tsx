@@ -16,6 +16,12 @@ export default function RootLayout() {
           }}
           name="cart"
         />
+        <Stack.Screen
+          options={{
+            presentation: "modal",
+          }}
+          name="BillPage"
+        />
       </Stack>
     </SafeAreaView>
   );

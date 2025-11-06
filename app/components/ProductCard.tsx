@@ -17,7 +17,7 @@ interface ProductCardProps {
   onAddToCart: (product: ProductDataType) => void;
 }
 
-export function ProductCard({
+export default function ProductCard({
   product,
   onDelete,
   onUpdate,
@@ -55,8 +55,8 @@ export function ProductCard({
         <View className="w-16 h-16 bg-gray-50 rounded-lg overflow-hidden">
           {product.product_image ? (
             <Image
-              // source={{ uri: product.product_image }}
-              source={require("@/assets/images/not-found-1.jpeg")}
+              source={{ uri: product.product_image }}
+              // source={require("@/assets/images/not-found-1.jpeg")}
               className="w-full h-full"
               resizeMode="cover"
             />

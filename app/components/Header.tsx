@@ -10,7 +10,7 @@ interface HeaderProps {
   cartItemCount?: number;
 }
 
-export function Header({
+export default function Header({
   onCartPress,
   onAddPress,
   onScanPress,

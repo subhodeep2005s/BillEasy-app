@@ -218,6 +218,17 @@ export default function Login() {
               </View>
             ) : null}
           </View>
+          {/* Forgot Password Text Link */}
+          <TouchableOpacity
+            onPress={() => router.push("/(auth)/forgot-password")}
+            disabled={loading}
+            activeOpacity={0.6}
+            className="self-end mb-4"
+          >
+            <Text className="text-[13px] text-blue-500 font-medium">
+              Forgot password?
+            </Text>
+          </TouchableOpacity>
 
           {/* Sign In Button */}
           <TouchableOpacity

@@ -30,7 +30,7 @@ const getRandomFallbackImage = (barcode: string) => {
   return fallbackImages[index];
 };
 
-export function ProductListCard({
+export default function ProductListCard({
   product,
   onDelete,
   onUpdate,
@@ -71,8 +71,8 @@ export function ProductListCard({
         {/* Product Image */}
         <View className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden">
           <Image
-            // source={imageSource}
-            source={require("@/assets/images/not-found-1.jpeg")}
+            source={imageSource}
+            // source={require("@/assets/images/not-found-1.jpeg")}
             className="w-full h-full"
             resizeMode="cover"
           />

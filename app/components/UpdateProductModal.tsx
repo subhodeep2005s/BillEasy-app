@@ -21,7 +21,7 @@ interface UpdateProductModalProps {
   ) => Promise<void>;
 }
 
-export function UpdateProductModal({
+export default function UpdateProductModal({
   visible,
   product,
   onClose,

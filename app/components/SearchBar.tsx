@@ -12,7 +12,7 @@ interface SearchBarProps {
   onViewModeChange: () => void;
 }
 
-export function SearchBar({
+export default function SearchBar({
   value,
   onChangeText,
   placeholder = "Search products by name or barcode...",

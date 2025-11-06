@@ -31,7 +31,7 @@ const getRandomFallbackImage = (barcode: string) => {
   return fallbackImages[index];
 };
 
-export function ProductGridCard({
+export default function ProductGridCard({
   product,
   onDelete,
   onUpdate,
@@ -73,8 +73,8 @@ export function ProductGridCard({
       <View className="relative">
         <View className="w-full h-32 bg-gray-50">
           <Image
-            // source={imageSource}
-            source={require("@/assets/images/not-found-1.jpeg")}
+            source={imageSource}
+            // source={require("@/assets/images/not-found-1.jpeg")}
             className="w-full h-full"
             resizeMode="cover"
           />

@@ -19,7 +19,7 @@ type Props = {
   onBarcodeScanned: (barcode: string) => void;
 };
 
-export const BarcodeScannerOverlay: React.FC<Props> = ({
+const BarcodeScannerOverlay: React.FC<Props> = ({
   visible,
   flashEnabled,
   onToggleFlash,
@@ -170,3 +170,5 @@ export const BarcodeScannerOverlay: React.FC<Props> = ({
     </View>
   );
 };
+
+export default BarcodeScannerOverlay;

@@ -46,7 +46,7 @@ const CATEGORIES = [
   "Others",
 ];
 
-export function ScanProductModal({
+export default function ScanProductModal({
   visible,
   scannedBarcode,
   onClose,

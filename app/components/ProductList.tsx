@@ -3,8 +3,8 @@ import { ProductDataType } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { ActivityIndicator, Text, View } from "react-native";
-import { ProductGridCard } from "../components/ProductGridCard";
-import { ProductListCard } from "../components/ProductListCard";
+import ProductGridCard from "../components/ProductGridCard";
+import ProductListCard from "../components/ProductListCard";
 
 interface ProductListProps {
   products: ProductDataType[];
@@ -15,7 +15,7 @@ interface ProductListProps {
   onAddToCart: (product: ProductDataType) => void;
 }
 
-export function ProductList({
+export default function ProductList({
   products,
   loading,
   viewMode,

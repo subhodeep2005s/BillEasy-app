@@ -2,21 +2,22 @@
 import { apiUrl } from "@/config";
 import "@/global.css";
 import { ProductDataType, UpdateStockType } from "@/types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import * as secureStore from "expo-secure-store";
 import React, { useCallback, useEffect, useState } from "react";
 import { Alert, RefreshControl, ScrollView, View } from "react-native";
-import { useDebounce } from "../components//hooks/useDebounce";
-import { AddProductData, AddProductModal } from "../components/AddProductModal";
-import { BarcodeScannerOverlay } from "../components/BarcodeScannerOverlay";
-import { Header } from "../components/Header";
-import { ProductList } from "../components/ProductList";
-import {
+import useDebounce from "../components//hooks/useDebounce";
+import AddProductModal, { AddProductData } from "../components/AddProductModal";
+import BarcodeScannerOverlay from "../components/BarcodeScannerOverlay";
+import Header from "../components/Header";
+import ProductList from "../components/ProductList";
+import QuantityModal from "../components/QuantityModal";
+import ScanProductModal, {
   ScanProductData,
-  ScanProductModal,
 } from "../components/ScanProductModal";
-import { SearchBar } from "../components/SearchBar";
-import { UpdateProductModal } from "../components/UpdateProductModal";
+import SearchBar from "../components/SearchBar";
+import UpdateProductModal from "../components/UpdateProductModal";
 
 export default function Index() {
   const [products, setProducts] = useState<ProductDataType[]>([]);
@@ -35,6 +36,11 @@ export default function Index() {
   const [addProductModalVisible, setAddProductModalVisible] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [cartItemCount] = useState(0);
+
+  //QuantityModal states
+  const [quantityModalVisible, setQuantityModalVisible] = useState(false);
+  const [quantityProduct, setQuantityProduct] =
+    useState<ProductDataType | null>(null);
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
@@ -151,12 +157,45 @@ export default function Index() {
     setModalVisible(true);
   };
 
-  const handleAddToCart = (product: ProductDataType) => {
-    // Alert.alert(
-    //   "Added to Cart",
-    //   `${product.name} has been added to your cart`,
-    //   [{ text: "OK" }]
-    // );
+  // === Handle Add to Cart ===
+  const NEEDS_QTY_PREFIXES = ["N/A-", "Q-"];
+  const needsQuantity = (barcode: string) =>
+    NEEDS_QTY_PREFIXES.some((p) => barcode?.startsWith(p));
+
+  const writeToCart = async (product: ProductDataType, qty: number) => {
+    try {
+      const existingCart = await AsyncStorage.getItem("cart");
+      let cart = existingCart ? JSON.parse(existingCart) : [];
+
+      const barcodeForCart = needsQuantity(product.barcode)
+        ? `${product.barcode} | ${qty}`
+        : product.barcode;
+
+      cart.push({
+        barcode: barcodeForCart,
+        name: product.name,
+        price: product.price,
+        product_image: product.product_image,
+        stock: product.stock,
+        description: product.description,
+      });
+
+      await AsyncStorage.setItem("cart", JSON.stringify(cart));
+      Alert.alert("Added to Cart", `${product.name} added to your cart.`);
+      console.log("🛒 Current Cart:", cart);
+    } catch (error) {
+      console.error("❌ Error adding to cart:", error);
+      Alert.alert("Error", "Failed to add product to cart. Please try again.");
+    }
+  };
+
+  const handleAddToCart = async (product: ProductDataType) => {
+    if (needsQuantity(product.barcode)) {
+      setQuantityProduct(product);
+      setQuantityModalVisible(true);
+      return;
+    }
+    await writeToCart(product, 1);
   };
 
   const handleSubmitUpdate = async (
@@ -350,6 +389,22 @@ export default function Index() {
         onToggleFlash={toggleFlash}
         onClose={closeScanner}
         onBarcodeScanned={handleCheckoutBarcodeScanned}
+      />
+      <QuantityModal
+        visible={quantityModalVisible}
+        productName={quantityProduct?.name}
+        onCancel={() => {
+          setQuantityModalVisible(false);
+          setQuantityProduct(null);
+        }}
+        onConfirm={async (qty) => {
+          if (quantityProduct) {
+            await writeToCart(quantityProduct, qty);
+            setQuantityModalVisible(false);
+            setQuantityProduct(null);
+          }
+        }}
+        initialQty={1}
       />
     </View>
   );
