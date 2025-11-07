@@ -12,12 +12,14 @@ import React, { useState } from "react";
 
 import {
   Animated,
+  DeviceEventEmitter,
   Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { CART_UPDATED } from "../lib/cartEvents";
 
 export default function TabLayout() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -69,11 +71,11 @@ export default function TabLayout() {
 
           // ✅ Save cart
           await AsyncStorage.setItem("cart", JSON.stringify(cart));
+          DeviceEventEmitter.emit(CART_UPDATED, { count: cart.length });
 
           alert(`${product.name} added to cart`);
 
           // ✅ Log updated cart for debugging
-          console.log("🛒 Current Cart:", cart);
         } else {
           alert(`${product.name} is out of stock`);
         }

@@ -1,4 +1,4 @@
-import { FinalizeSaleModal } from "@/app/components/FinalizeSaleModal";
+import FinalizeSaleModal from "@/app/components/FinalizeSaleModal";
 import { apiUrl } from "@/config";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -8,12 +8,14 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  DeviceEventEmitter,
   FlatList,
   Image,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { CART_UPDATED } from "./lib/cartEvents";
 
 // ---------- Helpers ----------
 const isFixedQuantity = (barcode: string) =>
@@ -79,6 +81,7 @@ export default function CartScreen() {
   const saveCart = async (items: CartItem[]) => {
     setCartItems(items);
     await AsyncStorage.setItem("cart", JSON.stringify(items));
+    DeviceEventEmitter.emit(CART_UPDATED, { count: items.length }); // counts entries
   };
 
   const groups: GroupRow[] = useMemo(() => {
@@ -158,6 +161,7 @@ export default function CartScreen() {
   const clearCart = async () => {
     await AsyncStorage.removeItem("cart");
     setCartItems([]);
+    DeviceEventEmitter.emit(CART_UPDATED, { count: 0 });
   };
 
   // Step 1: Proceed Cart

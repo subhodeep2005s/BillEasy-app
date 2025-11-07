@@ -4,8 +4,9 @@ import { useFocusEffect } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
+  Animated,
+  RefreshControl,
   ScrollView,
   StatusBar,
   Text,
@@ -52,17 +53,121 @@ type GroupedCart = {
   payment_mode: string;
   date: string;
   time: string;
+  timestamp: number;
+  expanded?: boolean;
+};
+
+// ----------------- ✅ Skeleton Component -----------------
+const SkeletonLoader = () => {
+  const pulseAnim = new Animated.Value(0);
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  const opacity = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.7],
+  });
+
+  return (
+    <View className="flex-1 bg-gray-50">
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+
+      {/* Header Skeleton */}
+      <View className="bg-white px-6 pt-4 pb-5 shadow-sm">
+        <View className="flex-row items-center mb-4">
+          <Animated.View
+            style={{ opacity }}
+            className="bg-gray-200 rounded-2xl w-14 h-14 mr-4"
+          />
+          <View className="flex-1">
+            <Animated.View
+              style={{ opacity }}
+              className="bg-gray-200 h-7 w-40 rounded-lg mb-2"
+            />
+            <Animated.View
+              style={{ opacity }}
+              className="bg-gray-200 h-4 w-48 rounded-lg"
+            />
+          </View>
+        </View>
+
+        {/* Stats Cards Skeleton */}
+        <View className="flex-row gap-3">
+          <Animated.View
+            style={{ opacity }}
+            className="flex-1 bg-gray-200 rounded-2xl h-24"
+          />
+          <Animated.View
+            style={{ opacity }}
+            className="flex-1 bg-gray-200 rounded-2xl h-24"
+          />
+        </View>
+      </View>
+
+      <ScrollView className="flex-1">
+        {/* Filter Chips Skeleton */}
+        <View className="px-6 py-5">
+          <Animated.View
+            style={{ opacity }}
+            className="bg-gray-200 h-4 w-32 rounded-lg mb-3"
+          />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View className="flex-row gap-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Animated.View
+                  key={i}
+                  style={{ opacity }}
+                  className="bg-gray-200 h-10 w-20 rounded-2xl"
+                />
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* Transaction Cards Skeleton */}
+        <View className="px-6 pb-24">
+          <Animated.View
+            style={{ opacity }}
+            className="bg-gray-200 h-4 w-48 rounded-lg mb-4"
+          />
+          {[1, 2, 3].map((i) => (
+            <Animated.View
+              key={i}
+              style={{ opacity }}
+              className="bg-white rounded-3xl p-5 mb-4 h-64 border border-gray-100"
+            />
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+  );
 };
 
 // ----------------- ✅ Main Component -----------------
 export default function Analytics() {
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [salesData, setSalesData] = useState<SalesData | null>(null);
-  const [selectedDays, setSelectedDays] = useState(0); // 0 means Today
+  const [selectedDays, setSelectedDays] = useState(1);
   const [groupedCarts, setGroupedCarts] = useState<GroupedCart[]>([]);
 
   const dayOptions = [
-    { value: 0, label: "Today" },
+    { value: 1, label: "Today" },
     { value: 7, label: "7 Days" },
     { value: 15, label: "15 Days" },
     { value: 30, label: "30 Days" },
@@ -70,19 +175,27 @@ export default function Analytics() {
     { value: 90, label: "90 Days" },
   ];
 
-  const fetchSalesReport = async (days: number) => {
+  // ----------------- ✅ Fetch Sales Report -----------------
+  const fetchSalesReport = async (days: number, forceRefresh = false) => {
     try {
+      // Use refreshing state if it's a pull-to-refresh action
+      if (forceRefresh && !loading) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      // Fetch from API
       const token = await SecureStore.getItemAsync("accessToken");
       if (!token) throw new Error("No access token found");
 
-      setLoading(true);
       const response = await fetch(`${apiUrl}/product/sales-report`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ days: days === 0 ? 1 : days }), // Send 1 for today
+        body: JSON.stringify({ days: days === 1 ? 1 : days }),
       });
 
       const data = await response.json();
@@ -99,9 +212,16 @@ export default function Analytics() {
       Alert.alert("Error", "Unable to fetch sales report. Please try again.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
+  // ----------------- ✅ Pull to Refresh Handler -----------------
+  const onRefresh = useCallback(() => {
+    fetchSalesReport(selectedDays, true);
+  }, [selectedDays]);
+
+  // ----------------- ✅ Group Cart Items -----------------
   const groupCartItems = (items: SalesItem[]) => {
     const grouped: Record<string, GroupedCart> = {};
 
@@ -127,14 +247,23 @@ export default function Analytics() {
             minute: "2-digit",
             hour12: true,
           }),
+          timestamp: dateObj.getTime(),
+          expanded: false,
         };
       }
       grouped[item.cart_id].items.push(item);
     });
 
     setGroupedCarts(
-      Object.values(grouped).sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      Object.values(grouped).sort((a, b) => b.timestamp - a.timestamp)
+    );
+  };
+
+  // ----------------- ✅ Toggle Expand -----------------
+  const toggleExpand = (cart_id: string) => {
+    setGroupedCarts((prev) =>
+      prev.map((cart) =>
+        cart.cart_id === cart_id ? { ...cart, expanded: !cart.expanded } : cart
       )
     );
   };
@@ -145,12 +274,16 @@ export default function Analytics() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchSalesReport(selectedDays);
+      // Force refresh when screen comes into focus
+      fetchSalesReport(selectedDays, true);
     }, [selectedDays])
   );
 
   const formatCurrency = (amount: number) =>
-    `₹${amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    `₹${amount.toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
 
   const getPaymentStyle = (mode: string) => {
     const lowerMode = mode.toLowerCase();
@@ -187,6 +320,8 @@ export default function Analytics() {
   // ----------------- ✅ Render Transaction Card -----------------
   const renderCartItem = ({ item }: { item: GroupedCart }) => {
     const paymentStyle = getPaymentStyle(item.payment_mode);
+    const shouldCollapse = item.items.length > 3;
+    const displayItems = item.expanded ? item.items : item.items.slice(0, 3);
 
     return (
       <View className="bg-white rounded-3xl p-5 mb-4 shadow-lg border border-gray-100">
@@ -258,7 +393,7 @@ export default function Analytics() {
           </View>
 
           <View>
-            {item.items.map((product, i) => (
+            {displayItems.map((product, i) => (
               <View
                 key={i}
                 className="flex-row items-center bg-white rounded-xl p-3 border border-gray-100 mb-2"
@@ -283,6 +418,28 @@ export default function Analytics() {
                 </View>
               </View>
             ))}
+
+            {/* See More / See Less Button */}
+            {shouldCollapse && (
+              <TouchableOpacity
+                onPress={() => toggleExpand(item.cart_id)}
+                activeOpacity={0.7}
+                className="mt-2 bg-blue-50 rounded-xl py-3 items-center border border-blue-100"
+              >
+                <View className="flex-row items-center">
+                  <Text className="text-blue-700 font-bold text-sm mr-1">
+                    {item.expanded
+                      ? "Show Less"
+                      : `Show ${item.items.length - 3} More Items`}
+                  </Text>
+                  <Ionicons
+                    name={item.expanded ? "chevron-up" : "chevron-down"}
+                    size={16}
+                    color="#1d4ed8"
+                  />
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -329,17 +486,7 @@ export default function Analytics() {
   };
 
   if (loading) {
-    return (
-      <View className="flex-1 justify-center items-center bg-gray-50">
-        <StatusBar barStyle="dark-content" backgroundColor="#f9fafb" />
-        <View className="bg-white rounded-3xl p-8 shadow-xl items-center">
-          <ActivityIndicator size="large" color="#3b82f6" />
-          <Text className="mt-4 text-gray-700 font-semibold">
-            Loading sales history...
-          </Text>
-        </View>
-      </View>
-    );
+    return <SkeletonLoader />;
   }
 
   return (
@@ -390,7 +537,20 @@ export default function Analytics() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        className="flex-1"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#3b82f6"]}
+            tintColor="#3b82f6"
+            title="Pull to refresh"
+            titleColor="#6b7280"
+          />
+        }
+      >
         {/* Filter Chips */}
         <View className="px-6 py-5">
           <Text className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">

@@ -3,10 +3,16 @@ import { apiUrl } from "@/config";
 import "@/global.css";
 import { ProductDataType, UpdateStockType } from "@/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import * as secureStore from "expo-secure-store";
 import React, { useCallback, useEffect, useState } from "react";
-import { Alert, RefreshControl, ScrollView, View } from "react-native";
+import {
+  Alert,
+  DeviceEventEmitter,
+  RefreshControl,
+  ScrollView,
+  View,
+} from "react-native";
 import useDebounce from "../components//hooks/useDebounce";
 import AddProductModal, { AddProductData } from "../components/AddProductModal";
 import BarcodeScannerOverlay from "../components/BarcodeScannerOverlay";
@@ -18,7 +24,7 @@ import ScanProductModal, {
 } from "../components/ScanProductModal";
 import SearchBar from "../components/SearchBar";
 import UpdateProductModal from "../components/UpdateProductModal";
-
+import { CART_UPDATED } from "../lib/cartEvents";
 export default function Index() {
   const [products, setProducts] = useState<ProductDataType[]>([]);
 
@@ -35,7 +41,7 @@ export default function Index() {
   const [scannedBarcode, setScannedBarcode] = useState("");
   const [addProductModalVisible, setAddProductModalVisible] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
-  const [cartItemCount] = useState(0);
+  const [cartItemCount, setCartItemCount] = useState<number>(0);
 
   //QuantityModal states
   const [quantityModalVisible, setQuantityModalVisible] = useState(false);
@@ -157,6 +163,55 @@ export default function Index() {
     setModalVisible(true);
   };
 
+  // cart count functionality
+  const loadCartCount = useCallback(async () => {
+    const raw = await AsyncStorage.getItem("cart");
+    const cart = raw ? JSON.parse(raw) : [];
+    // You said "| 3" is weight/variant, not quantity → count entries
+    setCartItemCount(cart.length);
+  }, []);
+
+  // 1) subscribe ONCE to events (mount -> unmount)
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener(
+      CART_UPDATED,
+      (e: { count: number }) => {
+        setCartItemCount(e.count);
+      }
+    );
+
+    // also initialize once on first mount
+    loadCartCount();
+
+    return () => sub.remove();
+  }, [loadCartCount]);
+
+  // 2) refresh whenever Home gets focus again
+  useFocusEffect(
+    useCallback(() => {
+      loadCartCount();
+    }, [loadCartCount])
+  );
+
+  useEffect(() => {
+    // initialize from storage on first load
+    (async () => {
+      const raw = await AsyncStorage.getItem("cart");
+      const cart = raw ? JSON.parse(raw) : [];
+      setCartItemCount(cart.length);
+    })();
+
+    // listen for changes from anywhere
+    const sub = DeviceEventEmitter.addListener(
+      CART_UPDATED,
+      (e: { count: number }) => {
+        setCartItemCount(e.count);
+      }
+    );
+
+    return () => sub.remove();
+  }, []);
+
   // === Handle Add to Cart ===
   const NEEDS_QTY_PREFIXES = ["N/A-", "Q-"];
   const needsQuantity = (barcode: string) =>
@@ -181,7 +236,16 @@ export default function Index() {
       });
 
       await AsyncStorage.setItem("cart", JSON.stringify(cart));
-      Alert.alert("Added to Cart", `${product.name} added to your cart.`);
+      const totalItems = cart.length;
+      setCartItemCount(totalItems);
+      DeviceEventEmitter.emit(CART_UPDATED, { count: totalItems });
+
+      Alert.alert(
+        "✅ Added to Cart",
+        `${product.name} has been successfully added to your cart.`,
+        [{ text: "OK", style: "default" }]
+      );
+
       console.log("🛒 Current Cart:", cart);
     } catch (error) {
       console.error("❌ Error adding to cart:", error);
@@ -260,7 +324,6 @@ export default function Index() {
 
   const handleAddPress = () => {
     setAddProductModalVisible(true);
-    console.log("Add Product Pressed");
   };
   const handleAddProduct = async (data: AddProductData) => {
     try {
@@ -273,8 +336,6 @@ export default function Index() {
         },
         body: JSON.stringify(data),
       });
-
-      console.log("Add Product Response:", JSON.stringify(data)); // For debugging
 
       if (!response.ok) {
         throw new Error("Failed to add product");

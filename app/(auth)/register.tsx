@@ -34,6 +34,12 @@ export default function Register() {
     upiId: "",
   });
 
+  // Generate random number between 1-100 for avatar
+  const getRandomAvatar = () => {
+    const randomId = Math.floor(Math.random() * 100) + 1;
+    return `https://avatar.iran.liara.run/public/${randomId}`;
+  };
+
   // Validation functions
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -51,9 +57,8 @@ export default function Register() {
   };
 
   const validatePassword = (password: string) => {
-    // Must be at least 6 characters (any kind of character)
-    const passwordRegex = /^.{6,}$/;
-    return passwordRegex.test(password);
+    // Must be at least 6 characters
+    return password.length >= 6;
   };
 
   const validateForm = () => {
@@ -98,14 +103,16 @@ export default function Register() {
       newErrors.password = "Password is required";
       isValid = false;
     } else if (!validatePassword(password)) {
-      newErrors.password =
-        "Password must be 6+ chars with uppercase, lowercase & number";
+      newErrors.password = "Password must be at least 6 characters";
       isValid = false;
     }
 
     // UPI validation (optional field)
     if (upiId.trim() && !validateUPI(upiId)) {
       newErrors.upiId = "Please enter a valid UPI ID (e.g., user@bank)";
+      isValid = false;
+    } else if (!upiId.trim()) {
+      newErrors.upiId = "Upi ID is required";
       isValid = false;
     }
 
@@ -120,21 +127,28 @@ export default function Register() {
 
     setLoading(true);
     try {
+      // Prepare the data exactly as your backend expects
+      const requestData = {
+        username: username.trim(),
+        password: password,
+        email: email.trim().toLowerCase(),
+        phoneNo: phoneNo.trim(),
+        additional_dtls: additionalDtls.trim() || "Retail Store",
+        profile_image: getRandomAvatar(), // Dynamic avatar URL
+        upiId: upiId.trim() || "",
+      };
+
       const response = await fetch(`${apiUrl}/auth/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: username.trim(),
-          password: password,
-          email: email.trim().toLowerCase(),
-          phoneNo: phoneNo.trim(),
-          additional_dtls: additionalDtls.trim() || "Retail Store",
-          profile_image: "",
-          upiId: upiId.trim() || "",
-        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData),
       });
 
       const data = await response.json();
+
+      console.log("Response status:", response.status);
 
       if (response.ok) {
         Alert.alert("Success", "Registration successful! Please sign in.", [
@@ -356,7 +370,7 @@ export default function Register() {
               </View>
             ) : (
               <Text className="text-gray-400 text-xs mt-2">
-                Must be 6+ characters with uppercase, lowercase & number
+                Password must be at least 6 characters
               </Text>
             )}
           </View>
@@ -364,7 +378,7 @@ export default function Register() {
           {/* UPI ID (Optional) */}
           <View className="mb-4">
             <Text className="text-sm font-semibold text-gray-700 mb-2">
-              UPI ID (Optional)
+              UPI ID
             </Text>
             <View
               className={`flex-row items-center bg-gray-50 rounded-2xl px-4 py-4 border-2 ${

@@ -28,6 +28,13 @@ if (!apiUrl) {
   );
 }
 
+if (!apiUrl) {
+  Alert.alert(
+    "Configuration Error",
+    "API URL is not set. Please check your environment variables."
+  );
+}
+
 export default function Login() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -218,17 +225,6 @@ export default function Login() {
               </View>
             ) : null}
           </View>
-          {/* Forgot Password Text Link */}
-          <TouchableOpacity
-            onPress={() => router.push("/(auth)/forgot-password")}
-            disabled={loading}
-            activeOpacity={0.6}
-            className="self-end mb-4"
-          >
-            <Text className="text-[13px] text-blue-500 font-medium">
-              Forgot password?
-            </Text>
-          </TouchableOpacity>
 
           {/* Sign In Button */}
           <TouchableOpacity
@@ -271,6 +267,19 @@ export default function Login() {
             >
               <Text className="text-sm text-blue-500 font-semibold">
                 Sign Up
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {/* Small "Lost your password?" link */}
+          <View className="items-center">
+            <TouchableOpacity
+              onPress={() => router.push("/(auth)/forgot-password")}
+              disabled={loading}
+              activeOpacity={0.6}
+              className="mb-2 px-1"
+            >
+              <Text className="text-sm text-blue-500 font-medium ">
+                Lost your password? Get help
               </Text>
             </TouchableOpacity>
           </View>
